@@ -1,0 +1,23 @@
+Changes
+MANIFEST
+META.yml # Will be created by "make dist"
+Makefile.PL
+README
+lib/Term/TtyRec/Plus.pm
+t/00-load.t
+t/01-read.t
+t/02-parameters.t
+t/03-filter.t
+t/04-failure.t
+t/05-grep.t
+t/06-rewind.t
+t/07-bzip2.t
+t/99-bugs.t
+t/boilerplate.t
+t/malformed-data.ttyrec
+t/malformed-header.ttyrec
+t/nethack.ttyrec
+t/pod-coverage.t
+t/pod.t
+t/simple.ttyrec
+t/simple.ttyrec.bz2
