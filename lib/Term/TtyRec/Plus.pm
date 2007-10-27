@@ -354,7 +354,7 @@ sub grep
 
 =head2 rewind()
 
-Rewinds the ttyrec to the first frame and resets state variables to their initial values. Note that C<rewind()> if C<filehandle> is not seekable (such as STDIN on some systems, or if bzip2 decompression is used), this will die.
+Rewinds the ttyrec to the first frame and resets state variables to their initial values. Note that if C<filehandle> is not seekable (such as STDIN on some systems, or if bzip2 decompression is used), C<rewind()> will die.
 
 =cut
 
