@@ -463,46 +463,6 @@ bzip2 support is transparent, mostly. Unfortunately L<IO::Uncompress::Bunzip2|IO
 
 =back
 
-=head1 BUGS
-
-Please report any bugs or feature requests to
-C<bug-term-ttyrec-plus at rt.cpan.org>, or through the web interface at
-L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Term-TtyRec-Plus>.
-I will be notified, and then you'll automatically be notified of progress on
-your bug as I make changes.
-
-=head1 SUPPORT
-
-You can find documentation for this module with the perldoc command.
-
-    perldoc Term::TtyRec::Plus
-
-You can also look for information at:
-
-=over 4
-
-=item * AnnoCPAN: Annotated CPAN documentation
-
-L<http://annocpan.org/dist/Term-TtyRec-Plus>
-
-=item * CPAN Ratings
-
-L<http://cpanratings.perl.org/d/Term-TtyRec-Plus>
-
-=item * RT: CPAN's request tracker
-
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Term-TtyRec-Plus>
-
-=item * Search CPAN
-
-L<http://search.cpan.org/dist/Term-TtyRec-Plus>
-
-=back
-
-=head1 ACKNOWLEDGEMENTS
-
-Thanks to Sean Kelly for always being the catalyst. Thanks also to brian d foy for writing "How a script becomes a module".
-
 =head1 COPYRIGHT & LICENSE
 
 Copyright 2006-2009 Shawn M Moore, all rights reserved.
