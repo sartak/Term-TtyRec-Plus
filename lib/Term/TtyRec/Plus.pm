@@ -1,5 +1,4 @@
 package Term::TtyRec::Plus;
-
 use warnings;
 use strict;
 use Carp qw/croak/;
@@ -534,7 +533,7 @@ Thanks to Sean Kelly for always being the catalyst. Thanks also to brian d foy f
 
 =head1 COPYRIGHT & LICENSE
 
-Copyright 2006 Shawn M Moore, all rights reserved.
+Copyright 2006-2009 Shawn M Moore, all rights reserved.
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.
