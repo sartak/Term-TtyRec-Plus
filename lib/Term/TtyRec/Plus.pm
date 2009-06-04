@@ -4,17 +4,261 @@ use strict;
 use Carp qw/croak/;
 use IO::Uncompress::Bunzip2 qw($Bunzip2Error);
 
+our $VERSION = '0.06';
+
+sub new
+{
+  my $class = shift;
+
+  my $self =
+  {
+    # options
+    infile              => "-",
+    filehandle          => undef,
+    bzip2               => undef,
+    time_threshold      => undef,
+    frame_filter        => sub { @_ },
+
+    # state
+    frame               => 0,
+    prev_timestamp      => undef,
+    accum_diff          => 0,
+    relative_time       => 0,
+
+    # allow overriding of options *and* state
+    @_,
+  };
+
+  $self->{initial_state} = {
+                             map { $_ => $self->{$_} }
+                             qw/frame prev_timestamp accum_diff relative_time/
+                           };
+
+  bless $self, $class;
+ 
+  if (defined($self->{filehandle}))
+  {
+    undef $self->{infile};
+  }
+  else
+  {
+    if (!defined($self->{infile}) || $self->{infile} eq '-')
+    {
+      $self->{filehandle} = *STDIN;
+    }
+    else
+    {
+      open($self->{filehandle}, '<', $self->{infile})
+        or croak "Unable to open '$self->{infile}' for reading: $!";
+    }
+  }
+
+  # If the caller tells us explicitly what to do, we honor that.
+  # Otherwise use bzip2 if and only if the filename ends in .bz2.
+  $self->{bzip2} = defined($self->{infile}) && $self->{infile} =~ /\.bz2$/
+    unless defined $self->{bzip2};
+
+  $self->{bzip2} = not not $self->{bzip2}; # force 0 or 1
+
+  if ($self->{bzip2})
+  {
+    my $bz2_handle = new IO::Uncompress::Bunzip2($self->{filehandle})
+                       or die "bunzip2 failed: $Bunzip2Error\n";
+    $self->{filehandle} = $bz2_handle;
+  }
+
+  croak "Cannot have a negative time threshold"
+    if defined($self->{time_threshold}) && $self->{time_threshold} < 0;
+
+  return $self;
+}
+
+sub next_frame
+{
+  my $self = shift;
+  $self->{frame}++;
+
+  my $hgot = read $self->{filehandle}, my $hdr, 12;
+  
+  # clean EOF
+  return if $hgot == 0;
+
+  croak "Expected 12-byte header, got $hgot in frame $self->{frame}"
+    if $hgot != 12;
+
+  my @hdr = unpack "VVV", $hdr;
+
+  my $orig_timestamp = $hdr[0] + $hdr[1] / 1_000_000;
+  my $diffed_timestamp = $orig_timestamp + $self->{accum_diff};
+  my $timestamp = $diffed_timestamp;
+  my $old_timestamp = $timestamp; # old = pre-filter
+  my $prev_timestamp = $self->{prev_timestamp};
+
+  # apply a threshold, if applicable
+  if (defined($self->{time_threshold}) && 
+      defined($prev_timestamp) && 
+      $timestamp - $prev_timestamp > $self->{time_threshold})
+  {
+    $timestamp = $prev_timestamp + $self->{time_threshold};
+    $self->{accum_diff} += $timestamp - $old_timestamp;
+    $old_timestamp = $timestamp;
+  }
+
+  my $dgot = read $self->{filehandle}, my ($data), $hdr[2];
+
+  croak "Expected $hdr[2]-byte frame, got $dgot in frame $self->{frame}"
+    if $dgot != $hdr[2];
+
+  $self->{frame_filter}(\$data, \$timestamp, \$self->{prev_timestamp});
+
+  $self->{prev_timestamp} = $timestamp;
+
+  my $diff = defined($prev_timestamp) ? $timestamp - $prev_timestamp : 0;
+
+  $self->{relative_time} += $diff
+    unless $self->{frame} == 1;
+
+  $self->{accum_diff} += $timestamp - $old_timestamp;
+
+  # rebuild header
+  $hdr[0] = int($timestamp);
+  $hdr[1] = int(1_000_000 * ($timestamp - $hdr[0]));
+  $hdr[2] = length($data);
+
+  my $newhdr =   pack "VVV", @hdr;
+
+  # test if header is kosher
+  my @newhdr = unpack "VVV", $newhdr;
+
+  croak "Unable to create a new header, seconds portion of timestamp in frame $self->{frame}: want to write $hdr[0], can only write $newhdr[0]"
+    if $hdr[0] != $newhdr[0];
+
+  croak "Unable to create a new header, microseconds portion of timestamp in frame $self->{frame}: want to write $hdr[1], can only write $newhdr[1]"
+    if $hdr[1] != $newhdr[1];
+
+  croak "Unable to create a new header, frame length in frame $self->{frame}: want to write $hdr[2], can only write $newhdr[2]"
+    if $hdr[2] != $newhdr[2];
+
+  return
+  {
+    data             => $data,
+    orig_timestamp   => $orig_timestamp,
+    diffed_timestamp => $diffed_timestamp,
+    timestamp        => $timestamp,
+    prev_timestamp   => $prev_timestamp,
+    diff             => $diff,
+    orig_header      => $hdr,
+    header           => $newhdr,
+    frame            => $self->{frame},
+    relative_time    => $self->{relative_time},
+  };
+}
+
+sub grep
+{
+  my $self = shift;
+  my @conditions;
+
+  foreach my $arg (@_)
+  {
+    if (ref($arg) eq 'CODE')
+    {
+      push @conditions, $arg;
+    }
+    elsif (ref($arg) eq 'Regexp')
+    {
+      push @conditions, sub { $_[0]{data} =~ $arg };
+    }
+    elsif (ref($arg) eq '')
+    {
+      push @conditions, sub { index($_[0]{data}, $arg) > -1 }
+    }
+    else
+    {
+      croak "Each of grep()'s arguments must be a subroutine, regular expression, or string; you passed a " . ref($arg);
+    }
+  }
+
+  FRAME:
+  while (my $frame_ref = $self->next_frame())
+  {
+    CONDITION:
+    foreach (@conditions)
+    {
+      next FRAME if not $_->($frame_ref);
+    }
+    return $frame_ref;
+  }
+
+  # no matching frames!
+  return;
+}
+
+sub rewind
+{
+  my $self = shift;
+  
+  while (my ($k, $v) = each %{$self->{initial_state}})
+  {
+    $self->{$k} = $v;
+  }
+
+  seek $self->{filehandle}, 0, 0
+    or croak "Unable to seek on filehandle";
+}
+
+sub infile
+{
+  $_[0]->{infile};
+}
+
+sub filehandle
+{
+  $_[0]->{filehandle};
+}
+
+sub bzip2
+{
+  $_[0]->{bzip2};
+}
+
+sub time_threshold
+{
+  $_[0]->{time_threshold};
+}
+
+sub frame_filter
+{
+  $_[0]->{frame_filter};
+}
+
+sub frame
+{
+  $_[0]->{frame};
+}
+
+sub prev_timestamp
+{
+  $_[0]->{prev_timestamp};
+}
+
+sub relative_time
+{
+  $_[0]->{relative_time};
+}
+
+sub accum_diff
+{
+  $_[0]->{accum_diff};
+}
+
+1;
+
+__END__
+
 =head1 NAME
 
 Term::TtyRec::Plus - read a ttyrec
-
-=head1 VERSION
-
-Version 0.06
-
-=cut
-
-our $VERSION = '0.06';
 
 =head1 SYNOPSIS
 
@@ -101,75 +345,6 @@ The time passed since the first frame. Default C<0>.
 
 =back
 
-=cut
-
-sub new
-{
-  my $class = shift;
-
-  my $self =
-  {
-    # options
-    infile              => "-",
-    filehandle          => undef,
-    bzip2               => undef,
-    time_threshold      => undef,
-    frame_filter        => sub { @_ },
-
-    # state
-    frame               => 0,
-    prev_timestamp      => undef,
-    accum_diff          => 0,
-    relative_time       => 0,
-
-    # allow overriding of options *and* state
-    @_,
-  };
-
-  $self->{initial_state} = {
-                             map { $_ => $self->{$_} }
-                             qw/frame prev_timestamp accum_diff relative_time/
-                           };
-
-  bless $self, $class;
- 
-  if (defined($self->{filehandle}))
-  {
-    undef $self->{infile};
-  }
-  else
-  {
-    if (!defined($self->{infile}) || $self->{infile} eq '-')
-    {
-      $self->{filehandle} = *STDIN;
-    }
-    else
-    {
-      open($self->{filehandle}, '<', $self->{infile})
-        or croak "Unable to open '$self->{infile}' for reading: $!";
-    }
-  }
-
-  # If the caller tells us explicitly what to do, we honor that.
-  # Otherwise use bzip2 if and only if the filename ends in .bz2.
-  $self->{bzip2} = defined($self->{infile}) && $self->{infile} =~ /\.bz2$/
-    unless defined $self->{bzip2};
-
-  $self->{bzip2} = not not $self->{bzip2}; # force 0 or 1
-
-  if ($self->{bzip2})
-  {
-    my $bz2_handle = new IO::Uncompress::Bunzip2($self->{filehandle})
-                       or die "bunzip2 failed: $Bunzip2Error\n";
-    $self->{filehandle} = $bz2_handle;
-  }
-
-  croak "Cannot have a negative time threshold"
-    if defined($self->{time_threshold}) && $self->{time_threshold} < 0;
-
-  return $self;
-}
-
 =head1 METHODS
 
 =head2 next_frame()
@@ -220,254 +395,51 @@ The time between the first frame's timestamp and the current frame's timestamp.
 
 =back
 
-=cut
-
-sub next_frame
-{
-  my $self = shift;
-  $self->{frame}++;
-
-  my $hgot = read $self->{filehandle}, my $hdr, 12;
-  
-  # clean EOF
-  return if $hgot == 0;
-
-  croak "Expected 12-byte header, got $hgot in frame $self->{frame}"
-    if $hgot != 12;
-
-  my @hdr = unpack "VVV", $hdr;
-
-  my $orig_timestamp = $hdr[0] + $hdr[1] / 1_000_000;
-  my $diffed_timestamp = $orig_timestamp + $self->{accum_diff};
-  my $timestamp = $diffed_timestamp;
-  my $old_timestamp = $timestamp; # old = pre-filter
-  my $prev_timestamp = $self->{prev_timestamp};
-
-  # apply a threshold, if applicable
-  if (defined($self->{time_threshold}) && 
-      defined($prev_timestamp) && 
-      $timestamp - $prev_timestamp > $self->{time_threshold})
-  {
-    $timestamp = $prev_timestamp + $self->{time_threshold};
-    $self->{accum_diff} += $timestamp - $old_timestamp;
-    $old_timestamp = $timestamp;
-  }
-
-  my $dgot = read $self->{filehandle}, my ($data), $hdr[2];
-
-  croak "Expected $hdr[2]-byte frame, got $dgot in frame $self->{frame}"
-    if $dgot != $hdr[2];
-
-  $self->{frame_filter}(\$data, \$timestamp, \$self->{prev_timestamp});
-
-  $self->{prev_timestamp} = $timestamp;
-
-  my $diff = defined($prev_timestamp) ? $timestamp - $prev_timestamp : 0;
-
-  $self->{relative_time} += $diff
-    unless $self->{frame} == 1;
-
-  $self->{accum_diff} += $timestamp - $old_timestamp;
-
-  # rebuild header
-  $hdr[0] = int($timestamp);
-  $hdr[1] = int(1_000_000 * ($timestamp - $hdr[0]));
-  $hdr[2] = length($data);
-
-  my $newhdr =   pack "VVV", @hdr;
-
-  # test if header is kosher
-  my @newhdr = unpack "VVV", $newhdr;
-
-  croak "Unable to create a new header, seconds portion of timestamp in frame $self->{frame}: want to write $hdr[0], can only write $newhdr[0]"
-    if $hdr[0] != $newhdr[0];
-
-  croak "Unable to create a new header, microseconds portion of timestamp in frame $self->{frame}: want to write $hdr[1], can only write $newhdr[1]"
-    if $hdr[1] != $newhdr[1];
-
-  croak "Unable to create a new header, frame length in frame $self->{frame}: want to write $hdr[2], can only write $newhdr[2]"
-    if $hdr[2] != $newhdr[2];
-
-  return
-  {
-    data             => $data,
-    orig_timestamp   => $orig_timestamp,
-    diffed_timestamp => $diffed_timestamp,
-    timestamp        => $timestamp,
-    prev_timestamp   => $prev_timestamp,
-    diff             => $diff,
-    orig_header      => $hdr,
-    header           => $newhdr,
-    frame            => $self->{frame},
-    relative_time    => $self->{relative_time},
-  };
-}
-
 =head2 grep()
 
 Returns the next frame that meets the specified criteria. C<grep()> accepts arguments that are subroutines, regex, or strings; anything else is a fatal error. If you pass multiple arguments to C<grep()>, each one must be true. The subroutines receive the frame reference that is returned by C<next_frame()>. You can modify the frame, but do so cautiously.
 
   my $next_jump_frame_ref = $t->grep("Where do you want to jump?", sub { $_[0]{data} !~ /Message History/});
 
-=cut
-
-sub grep
-{
-  my $self = shift;
-  my @conditions;
-
-  foreach my $arg (@_)
-  {
-    if (ref($arg) eq 'CODE')
-    {
-      push @conditions, $arg;
-    }
-    elsif (ref($arg) eq 'Regexp')
-    {
-      push @conditions, sub { $_[0]{data} =~ $arg };
-    }
-    elsif (ref($arg) eq '')
-    {
-      push @conditions, sub { index($_[0]{data}, $arg) > -1 }
-    }
-    else
-    {
-      croak "Each of grep()'s arguments must be a subroutine, regular expression, or string; you passed a " . ref($arg);
-    }
-  }
-
-  FRAME:
-  while (my $frame_ref = $self->next_frame())
-  {
-    CONDITION:
-    foreach (@conditions)
-    {
-      next FRAME if not $_->($frame_ref);
-    }
-    return $frame_ref;
-  }
-
-  # no matching frames!
-  return;
-}
-
 =head2 rewind()
 
 Rewinds the ttyrec to the first frame and resets state variables to their initial values. Note that if C<filehandle> is not seekable (such as STDIN on some systems, or if bzip2 decompression is used), C<rewind()> will die.
-
-=cut
-
-sub rewind
-{
-  my $self = shift;
-  
-  while (my ($k, $v) = each %{$self->{initial_state}})
-  {
-    $self->{$k} = $v;
-  }
-
-  seek $self->{filehandle}, 0, 0
-    or croak "Unable to seek on filehandle";
-}
 
 =head2 infile()
 
 Returns the infile passed to the constructor. If a filehandle was passed, this will be C<undef>.
 
-=cut
-
-sub infile
-{
-  $_[0]->{infile};
-}
-
 =head2 filehandle()
 
 Returns the filehandle passed to the constructor, or if C<infile> was used, a handle to C<infile>.
-
-=cut
-
-sub filehandle
-{
-  $_[0]->{filehandle};
-}
 
 =head2 bzip2()
 
 Returns 1 if bzip2 decompression has taken place, 0 if it has not.
 
-=cut
-
-sub bzip2
-{
-  $_[0]->{bzip2};
-}
-
 =head2 time_threshold()
 
 Returns the time threshold passed to the constructor. By default it is C<undef>.
-
-=cut
-
-sub time_threshold
-{
-  $_[0]->{time_threshold};
-}
 
 =head2 frame_filter()
 
 Returns the frame filter callback passed to the constructor. By default it is C<sub { @_ }>.
 
-=cut
-
-sub frame_filter
-{
-  $_[0]->{frame_filter};
-}
-
 =head2 frame()
 
 Returns the frame number of the most recently returned frame.
-
-=cut
-
-sub frame
-{
-  $_[0]->{frame};
-}
 
 =head2 prev_timestamp()
 
 Returns the timestamp of the most recently returned frame.
 
-=cut
-
-sub prev_timestamp
-{
-  $_[0]->{prev_timestamp};
-}
-
 =head2 relative_time()
 
 Returns the time so far since the first frame.
 
-=cut
-
-sub relative_time
-{
-  $_[0]->{relative_time};
-}
-
 =head2 accum_diff()
 
 Returns the total time difference between timestamps and filtered timestamps. C<accum_diff> is added to each frame's timestamp before they are passed to the C<frame_filter> callback.
-
-=cut
-
-sub accum_diff
-{
-  $_[0]->{accum_diff};
-}
 
 =head1 AUTHOR
 
@@ -540,4 +512,3 @@ under the same terms as Perl itself.
 
 =cut
 
-1; # End of Term::TtyRec::Plus
