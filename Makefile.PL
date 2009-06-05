@@ -8,5 +8,6 @@ githubmeta;
 
 requires 'IO::Uncompress::Bunzip2';
 
+auto_install;
 WriteAll;
 
