@@ -15,9 +15,9 @@ foreach my $initial_state (
         prev_timestamp => undef,
         relative_time  => 0,
     },
-    
+
     {
-        frame          => 1101, 
+        frame          => 1101,
         accum_diff     => -.3333,
         prev_timestamp => 1032981,
         relative_time  => 1923,

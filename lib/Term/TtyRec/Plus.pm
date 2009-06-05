@@ -33,7 +33,7 @@ sub new {
     };
 
     bless $self, $class;
- 
+
     if (defined($self->{filehandle})) {
         undef $self->{infile};
     }
@@ -71,7 +71,7 @@ sub next_frame {
     $self->{frame}++;
 
     my $hgot = read $self->{filehandle}, my $hdr, 12;
-    
+
     # clean EOF
     return if $hgot == 0;
 
@@ -87,8 +87,8 @@ sub next_frame {
     my $prev_timestamp = $self->{prev_timestamp};
 
     # apply a threshold, if applicable
-    if (defined($self->{time_threshold}) && 
-        defined($prev_timestamp) && 
+    if (defined($self->{time_threshold}) &&
+        defined($prev_timestamp) &&
         $timestamp - $prev_timestamp > $self->{time_threshold})
     {
         $timestamp = $prev_timestamp + $self->{time_threshold};
@@ -179,7 +179,7 @@ sub grep {
 
 sub rewind {
     my $self = shift;
-    
+
     while (my ($k, $v) = each %{$self->{initial_state}}) {
         $self->{$k} = $v;
     }

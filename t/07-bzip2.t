@@ -20,7 +20,7 @@ sub is_float {
 
 my $t = new Term::TtyRec::Plus(infile => "t/simple.ttyrec.bz2");
 isnt($t, undef, "new returns something");
-can_ok($t, qw(next_frame infile filehandle time_threshold frame_filter frame prev_timestamp relative_time accum_diff));    
+can_ok($t, qw(next_frame infile filehandle time_threshold frame_filter frame prev_timestamp relative_time accum_diff));
 
 # initial settings
 is($t->infile(), "t/simple.ttyrec.bz2", "t->infile() set correctly");
