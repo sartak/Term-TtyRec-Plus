@@ -6,12 +6,10 @@ use IO::Uncompress::Bunzip2 qw($Bunzip2Error);
 
 our $VERSION = '0.06';
 
-sub new
-{
+sub new {
   my $class = shift;
 
-  my $self =
-  {
+  my $self = {
     # options
     infile              => "-",
     filehandle          => undef,
@@ -36,18 +34,14 @@ sub new
 
   bless $self, $class;
  
-  if (defined($self->{filehandle}))
-  {
+  if (defined($self->{filehandle})) {
     undef $self->{infile};
   }
-  else
-  {
-    if (!defined($self->{infile}) || $self->{infile} eq '-')
-    {
+  else {
+    if (!defined($self->{infile}) || $self->{infile} eq '-') {
       $self->{filehandle} = *STDIN;
     }
-    else
-    {
+    else {
       open($self->{filehandle}, '<', $self->{infile})
         or croak "Unable to open '$self->{infile}' for reading: $!";
     }
@@ -60,8 +54,7 @@ sub new
 
   $self->{bzip2} = not not $self->{bzip2}; # force 0 or 1
 
-  if ($self->{bzip2})
-  {
+  if ($self->{bzip2}) {
     my $bz2_handle = new IO::Uncompress::Bunzip2($self->{filehandle})
                        or die "bunzip2 failed: $Bunzip2Error\n";
     $self->{filehandle} = $bz2_handle;
@@ -73,8 +66,7 @@ sub new
   return $self;
 }
 
-sub next_frame
-{
+sub next_frame {
   my $self = shift;
   $self->{frame}++;
 
@@ -139,8 +131,7 @@ sub next_frame
   croak "Unable to create a new header, frame length in frame $self->{frame}: want to write $hdr[2], can only write $newhdr[2]"
     if $hdr[2] != $newhdr[2];
 
-  return
-  {
+  return {
     data             => $data,
     orig_timestamp   => $orig_timestamp,
     diffed_timestamp => $diffed_timestamp,
@@ -154,37 +145,29 @@ sub next_frame
   };
 }
 
-sub grep
-{
+sub grep {
   my $self = shift;
   my @conditions;
 
-  foreach my $arg (@_)
-  {
-    if (ref($arg) eq 'CODE')
-    {
+  foreach my $arg (@_) {
+    if (ref($arg) eq 'CODE') {
       push @conditions, $arg;
     }
-    elsif (ref($arg) eq 'Regexp')
-    {
+    elsif (ref($arg) eq 'Regexp') {
       push @conditions, sub { $_[0]{data} =~ $arg };
     }
-    elsif (ref($arg) eq '')
-    {
+    elsif (ref($arg) eq '') {
       push @conditions, sub { index($_[0]{data}, $arg) > -1 }
     }
-    else
-    {
+    else {
       croak "Each of grep()'s arguments must be a subroutine, regular expression, or string; you passed a " . ref($arg);
     }
   }
 
   FRAME:
-  while (my $frame_ref = $self->next_frame())
-  {
+  while (my $frame_ref = $self->next_frame()) {
     CONDITION:
-    foreach (@conditions)
-    {
+    foreach (@conditions) {
       next FRAME if not $_->($frame_ref);
     }
     return $frame_ref;
@@ -194,12 +177,10 @@ sub grep
   return;
 }
 
-sub rewind
-{
+sub rewind {
   my $self = shift;
   
-  while (my ($k, $v) = each %{$self->{initial_state}})
-  {
+  while (my ($k, $v) = each %{$self->{initial_state}}) {
     $self->{$k} = $v;
   }
 
@@ -207,48 +188,39 @@ sub rewind
     or croak "Unable to seek on filehandle";
 }
 
-sub infile
-{
+sub infile {
   $_[0]->{infile};
 }
 
-sub filehandle
-{
+sub filehandle {
   $_[0]->{filehandle};
 }
 
-sub bzip2
-{
+sub bzip2 {
   $_[0]->{bzip2};
 }
 
-sub time_threshold
-{
+sub time_threshold {
   $_[0]->{time_threshold};
 }
 
-sub frame_filter
-{
+sub frame_filter {
   $_[0]->{frame_filter};
 }
 
-sub frame
-{
+sub frame {
   $_[0]->{frame};
 }
 
-sub prev_timestamp
-{
+sub prev_timestamp {
   $_[0]->{prev_timestamp};
 }
 
-sub relative_time
-{
+sub relative_time {
   $_[0]->{relative_time};
 }
 
-sub accum_diff
-{
+sub accum_diff {
   $_[0]->{accum_diff};
 }
 
@@ -267,11 +239,9 @@ C<Term::TtyRec::Plus> is a module that lets you read ttyrec files. The related m
     use Term::TtyRec::Plus;
     # complete (but simple) ttyrec playback script
 
-    foreach my $file (@ARGV)
-    {
+    foreach my $file (@ARGV) {
       my $ttyrec = Term::TtyRec::Plus->new(infile => $file, time_threshold => 10);
-      while (my $frame_ref = $ttyrec->next_frame())
-      {
+      while (my $frame_ref = $ttyrec->next_frame()) {
         select undef, undef, undef, $frame_ref->{diff};
         print $frame_ref->{data};
       }
@@ -311,8 +281,7 @@ The maximum difference between two frames, in seconds. If C<undef>, which is the
 
 A callback, run for each frame before returning the frame to the user of C<Term::TtyRec::Plus>. This callback receives three arguments: the frame text, the timestamp, and the timestamp of the previous frame. All three arguments are passed as scalar references. The previous frame's timestamp is C<undef> for the first frame. The return value is not currently looked at. If you modify the timestamp, the module will make sure that change is noted and respected in further frame timestamps. Modifications to the previous frame's timestamp are currently ignored.
 
-  sub halve_frame_time_and_stumblify
-  {
+  sub halve_frame_time_and_stumblify {
     my ($data_ref, $time_ref, $prev_ref) = @_;
     $$time_ref = $$prev_ref + ($$time_ref - $$prev_ref) / 2
       if defined $$prev_ref;

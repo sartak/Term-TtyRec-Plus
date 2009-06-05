@@ -8,12 +8,10 @@ my $frames_read;
 
 $frames_read = 0;
 
-eval
-{
+eval {
   my $t = new Term::TtyRec::Plus(infile => "t/missing.ttyrec");
   my $time = 0;
-  while (my $frame_ref = $t->next_frame())
-  {
+  while (my $frame_ref = $t->next_frame()) {
     ++$frames_read;
     $time += $frame_ref->{diff};
   }
@@ -26,14 +24,12 @@ like($@, qr/Unable to open 't\/missing\.ttyrec' for reading/, "\$@ contains the 
 
 $frames_read = 0;
 
-eval
-{
+eval {
   my $t = new Term::TtyRec::Plus(infile         => "t/simple.ttyrec",
                                          time_threshold => -1);
   my $time = 0;
 
-  while (my $frame_ref = $t->next_frame())
-  {
+  while (my $frame_ref = $t->next_frame()) {
     ++$frames_read;
     $time += $frame_ref->{diff};
   }
@@ -46,13 +42,11 @@ like($@, qr/Cannot have a negative time threshold/, "\$@ contains the correct er
 
 $frames_read = 0;
 
-eval
-{
+eval {
   my $t = new Term::TtyRec::Plus(infile => "t/malformed-header.ttyrec");
   my $time = 0;
 
-  while (my $frame_ref = $t->next_frame())
-  {
+  while (my $frame_ref = $t->next_frame()) {
     ++$frames_read;
     $time += $frame_ref->{diff};
   }
@@ -65,13 +59,11 @@ like($@, qr/Expected 12-byte header, got \d+ /, "\$@ contains the correct error"
 
 $frames_read = 0;
 
-eval
-{
+eval {
   my $t = new Term::TtyRec::Plus(infile => "t/malformed-data.ttyrec");
   my $time = 0;
 
-  while (my $frame_ref = $t->next_frame())
-  {
+  while (my $frame_ref = $t->next_frame()) {
     ++$frames_read;
     $time += $frame_ref->{diff};
   }
@@ -84,10 +76,8 @@ like($@, qr/Expected 19-byte frame, got \d+ /, "\$@ contains the correct error")
 
 $frames_read = 0;
 
-eval
-{
-  sub bad_callback
-  {
+eval {
+  sub bad_callback {
     my ($data, $time, $prev) = @_;
     $$time = -1;
   }
@@ -96,8 +86,7 @@ eval
                                          frame_filter => \&bad_callback);
   my $time = 0;
 
-  while (my $frame_ref = $t->next_frame())
-  {
+  while (my $frame_ref = $t->next_frame()) {
     ++$frames_read;
     $time += $frame_ref->{diff};
   }
@@ -110,13 +99,11 @@ like($@, qr/Unable to create a new header, \w+ portion of timestamp/, "\$@ conta
 
 $frames_read = 0;
 
-eval
-{
+eval {
   my $t = new Term::TtyRec::Plus(infile => "t/simple.ttyrec");
   my $time = 0;
 
-  while (my $frame_ref = $t->grep("I tell ya,", [qw/grep() was jsn's idea!!/]))
-  {
+  while (my $frame_ref = $t->grep("I tell ya,", [qw/grep() was jsn's idea!!/])) {
     ++$frames_read;
     $time += $frame_ref->{diff};
   }

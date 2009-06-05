@@ -9,15 +9,12 @@ my $time = 434.991698026657;
 my $time2 = 2.890479;
 
 # check whether two floating point values are close enough
-sub is_float
-{
+sub is_float {
   my ($a, $b, $test) = @_;
-  if (abs($a - $b) < 1e-4)
-  {
+  if (abs($a - $b) < 1e-4) {
     pass($test);
   }
-  else
-  {
+  else {
     fail($test);
     diag("Expected $a to be close to $b.");
   }
@@ -33,8 +30,7 @@ $t = new Term::TtyRec::Plus(infile         => $ttyrec,
 my $trunc = 0;
 my $trunc2 = 0;
 my $time_truncated = 0;
-while (my $frame_ref = $t->next_frame())
-{
+while (my $frame_ref = $t->next_frame()) {
   $trunc += $frame_ref->{diff};
 
   my $calced_diff = defined($frame_ref->{prev_timestamp}) ? $frame_ref->{timestamp} - $frame_ref->{prev_timestamp} : 0;
@@ -53,8 +49,7 @@ open(my $handle, '<', $ttyrec);
 $t = new Term::TtyRec::Plus(filehandle => $handle);
 
 my $t_time = 0;
-while (my $frame_ref = $t->next_frame())
-{
+while (my $frame_ref = $t->next_frame()) {
   $t_time += $frame_ref->{diff};
 }
 
@@ -66,8 +61,7 @@ $t = new Term::TtyRec::Plus(filehandle => $handle2,
                             infile     => "t/simple.ttyrec");
 
 $t_time = 0;
-while (my $frame_ref = $t->next_frame())
-{
+while (my $frame_ref = $t->next_frame()) {
   $t_time += $frame_ref->{diff};
 }
 
@@ -79,8 +73,7 @@ $t = new Term::TtyRec::Plus(filehandle => $handle3,
                             bzip2      => 1);
 
 $t_time = 0;
-while (my $frame_ref = $t->next_frame())
-{
+while (my $frame_ref = $t->next_frame()) {
   $t_time += $frame_ref->{diff};
 }
 
@@ -90,8 +83,7 @@ is_float($t_time, $time2, "bzip2 on a filehandle works");
 $t = new Term::TtyRec::Plus(infile => 't/simple.ttyrec.bz2');
 
 $t_time = 0;
-while (my $frame_ref = $t->next_frame())
-{
+while (my $frame_ref = $t->next_frame()) {
   $t_time += $frame_ref->{diff};
 }
 

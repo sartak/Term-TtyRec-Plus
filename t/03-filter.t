@@ -8,15 +8,12 @@ my $frames = 1783;
 my $time = 434.991698026657;
 
 # check whether two floating point values are close enough
-sub is_float
-{
+sub is_float {
   my ($a, $b, $test) = @_;
-  if (abs($a - $b) < 1e-4)
-  {
+  if (abs($a - $b) < 1e-4) {
     pass($test);
   }
-  else
-  {
+  else {
     fail($test);
     diag("Expected $a to be close to $b.");
   }
@@ -24,8 +21,7 @@ sub is_float
 
 my $callback_called = 0;
 
-sub filter
-{
+sub filter {
   my ($data_ref, $time_ref, $prev_ref) = @_;
   ++$callback_called;
   $$time_ref = $$prev_ref + ($$time_ref - $$prev_ref) / 2
@@ -43,8 +39,7 @@ my $diffs = 0;
 my $relative_time = 0;
 my $eidolos = 0;
 
-while (my $frame_ref = $t->next_frame())
-{
+while (my $frame_ref = $t->next_frame()) {
   $diffs_full += $frame_ref->{diffed_timestamp} - $frame_ref->{prev_timestamp}
     if $frame_ref->{frame} > 1;
 

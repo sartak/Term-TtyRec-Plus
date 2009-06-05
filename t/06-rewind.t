@@ -3,15 +3,13 @@ use Test::More tests =>   2  # initial states
                         * 5; # tests per initial state
 use Term::TtyRec::Plus;
 
-sub halve_time
-{
+sub halve_time {
   my ($data_ref, $time_ref, $prev_ref) = @_;
   $$time_ref = $$prev_ref + ($$time_ref - $$prev_ref) / 2
     if defined $$prev_ref;
 }
 
-foreach my $initial_state
-(
+foreach my $initial_state (
   {
     frame          => 0,
     accum_diff     => 0,
@@ -34,8 +32,7 @@ foreach my $initial_state
 
   my $first_frame_ref = $t->next_frame();
 
-  while ($frame_ref = $t->next_frame())
-  {
+  while ($frame_ref = $t->next_frame()) {
     last if $frame_ref->{frame} == 100;
   }
 
@@ -49,14 +46,11 @@ foreach my $initial_state
   $frame_ref = $t->next_frame();
 
   my $ok = 1;
-  while (my ($k, $v) = each(%{$first_frame_ref}))
-  {
-    if (!defined($v))
-    {
+  while (my ($k, $v) = each(%{$first_frame_ref})) {
+    if (!defined($v)) {
       exists($frame_ref->{$k}) && !defined($frame_ref->{$k}) or $ok = 0;
     }
-    else
-    {
+    else {
       $frame_ref->{$k} eq $v or $ok = 0;
     }
   }

@@ -8,15 +8,12 @@ use Test::More tests =>   10 # initial sanity checks
 use Term::TtyRec::Plus;
 
 # check whether two floating point values are close enough
-sub is_float
-{
+sub is_float {
   my ($a, $b, $test) = @_;
-  if (abs($a - $b) < 1e-4)
-  {
+  if (abs($a - $b) < 1e-4) {
     pass($test);
   }
-  else
-  {
+  else {
     fail($test);
     diag("Expected $a to be close to $b.");
   }
@@ -36,8 +33,7 @@ is($t->prev_timestamp(), undef, "t->prev_timestamp() initially undef");
 is($t->relative_time(), 0, "t->relative_time() initially 0");
 is($t->accum_diff(), 0, "t->accum_diff() initially 0");
 
-my @expected_outputs =
-(
+my @expected_outputs = (
   [undef,               undef], # for ease with frame_number, etc.
   ["frame 1",           1166173605.32873],
   ["frame 2",           1166173605.90382],
@@ -48,8 +44,7 @@ my @expected_outputs =
 my $frame_number = 0;
 my $relative_time = 0;
 
-while (my $frame_ref = $t->next_frame)
-{
+while (my $frame_ref = $t->next_frame) {
   ++$frame_number;
   my @frame = @{ $expected_outputs[$frame_number] };
 
@@ -62,13 +57,11 @@ while (my $frame_ref = $t->next_frame)
   is_float($frame_ref->{timestamp}, $frame[1], "Frame $frame_number timestamp is correct");
   is_float($t->prev_timestamp(), $frame[1], "Frame $frame_number timestamp is correct (from t->prev_timestamp())");
 
-  if ($frame_number == 1)
-  {
+  if ($frame_number == 1) {
     is($frame_ref->{prev_timestamp}, undef, "Frame $frame_number prev_timestamp is correct (from frame_ref)");
     is($frame_ref->{diff}, 0, "Frame $frame_number diff is correct");
   }
-  else
-  {
+  else {
     is_float($frame_ref->{prev_timestamp}, $expected_outputs[$frame_number - 1][1], "Frame $frame_number prev_timestamp is correct");
     is_float($frame_ref->{diff}, $frame[1] - $expected_outputs[$frame_number - 1][1], "Frame $frame_number diff is correct");
   }
