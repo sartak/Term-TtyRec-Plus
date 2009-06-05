@@ -253,7 +253,7 @@ C<Term::TtyRec::Plus> is a module that lets you read ttyrec files. The related m
 
 Creates and returns a new C<Term::TtyRec::Plus> object.
 
-  my $ttyrec = Term::TtyRec::Plus->new();
+    my $ttyrec = Term::TtyRec::Plus->new();
 
 =head3 Parameters
 
@@ -281,12 +281,12 @@ The maximum difference between two frames, in seconds. If C<undef>, which is the
 
 A callback, run for each frame before returning the frame to the user of C<Term::TtyRec::Plus>. This callback receives three arguments: the frame text, the timestamp, and the timestamp of the previous frame. All three arguments are passed as scalar references. The previous frame's timestamp is C<undef> for the first frame. The return value is not currently looked at. If you modify the timestamp, the module will make sure that change is noted and respected in further frame timestamps. Modifications to the previous frame's timestamp are currently ignored.
 
-  sub halve_frame_time_and_stumblify {
-    my ($data_ref, $time_ref, $prev_ref) = @_;
-    $$time_ref = $$prev_ref + ($$time_ref - $$prev_ref) / 2
-      if defined $$prev_ref;
-    $$data_ref =~ s/Eidolos/Stumbly/g;
-  }
+    sub halve_frame_time_and_stumblify {
+        my ($data_ref, $time_ref, $prev_ref) = @_;
+        $$time_ref = $$prev_ref + ($$time_ref - $$prev_ref) / 2
+            if defined $$prev_ref;
+        $$data_ref =~ s/Eidolos/Stumbly/g;
+    }
 
 =back
 
