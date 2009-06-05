@@ -1,4 +1,3 @@
-#!perl -T
 use Test::More tests =>   2  # initial states
                         * 5; # tests per initial state
 use Term::TtyRec::Plus;

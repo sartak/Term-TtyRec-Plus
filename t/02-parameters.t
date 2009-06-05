@@ -1,4 +1,3 @@
-#!perl -T
 use Test::More tests => 2 + 1 + 1 + 1 + 1;
 use Term::TtyRec::Plus;
 

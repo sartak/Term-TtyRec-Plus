@@ -1,4 +1,3 @@
-#!perl -T
 use Test::More tests =>   10 # initial sanity checks
                         + 5  # number of frames
                         * 11 # tests per frame
