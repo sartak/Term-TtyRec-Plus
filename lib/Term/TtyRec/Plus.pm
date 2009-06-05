@@ -420,15 +420,19 @@ Shawn M Moore, C<sartak@gmail.com>
 =over 4
 
 =item *
+
 Ttyrecs are frame-based. If you are trying to modify a string that is broken across multiple frames, it will not work. Say you have a ttyrec that prints "foo" in frame one and "bar" in frame two, both with the same timestamp. In a ttyrec player, it might look like these are one frame (with data "foobar"), but it's not. There is no easy, complete way to add arbitrary substitutions; you would have to write (or reuse) a terminal emulator.
 
 =item *
+
 If you modify the data block, weird things could happen. This is especially true of escape-code-littered ttyrecs (such as those of NetHack). For best results, pretend the data block is an executable file; changes are OK as long as you do not change the length of the file. It really depends on the ttyrec though.
 
 =item *
+
 If you modify the timestamp of a frame so that it is not in sequence with other frames, the behavior is undefined (it is up to the client program). C<Term::TtyRec::Plus> will not reorder the frames for you.
 
 =item *
+
 bzip2 support is transparent, mostly. Unfortunately L<IO::Uncompress::Bunzip2|IO::Uncompress::Bunzip2> is rather slow. I took a lengthy (~4 hours), bzipped ttyrec and ran a simple script on it, depending on the built-in bzip2 decompression. This took nearly four minutes. Using bunzip2 then the same script took about four seconds. So when you can, do explicit bzip2 decompression. Or better yet, help out the guys working on IO::Uncompress::Bunzip2. :)
 
 =back
