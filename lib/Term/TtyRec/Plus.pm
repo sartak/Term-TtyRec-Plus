@@ -55,8 +55,9 @@ sub new {
     $self->{bzip2} = not not $self->{bzip2}; # force 0 or 1
 
     if ($self->{bzip2}) {
-        my $bz2_handle = new IO::Uncompress::Bunzip2($self->{filehandle})
-                                             or die "bunzip2 failed: $Bunzip2Error\n";
+        my $bz2_handle = IO::Uncompress::Bunzip2->new(
+            $self->{filehandle}
+        ) or die "bunzip2 failed: $Bunzip2Error\n";
         $self->{filehandle} = $bz2_handle;
     }
 

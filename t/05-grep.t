@@ -1,7 +1,9 @@
 use Test::More tests => 4;
 use Term::TtyRec::Plus;
 
-my $t = new Term::TtyRec::Plus(infile => "t/nethack.ttyrec");
+my $t = Term::TtyRec::Plus->new(
+    infile => "t/nethack.ttyrec",
+);
 my $frame_ref;
 
 $frame_ref = $t->grep("finger of death");
