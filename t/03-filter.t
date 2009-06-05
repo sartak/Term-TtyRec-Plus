@@ -9,28 +9,30 @@ my $time = 434.991698026657;
 
 # check whether two floating point values are close enough
 sub is_float {
-  my ($a, $b, $test) = @_;
-  if (abs($a - $b) < 1e-4) {
-    pass($test);
-  }
-  else {
-    fail($test);
-    diag("Expected $a to be close to $b.");
-  }
+    my ($a, $b, $test) = @_;
+    if (abs($a - $b) < 1e-4) {
+        pass($test);
+    }
+    else {
+        fail($test);
+        diag("Expected $a to be close to $b.");
+    }
 }
 
 my $callback_called = 0;
 
 sub filter {
-  my ($data_ref, $time_ref, $prev_ref) = @_;
-  ++$callback_called;
-  $$time_ref = $$prev_ref + ($$time_ref - $$prev_ref) / 2
-    if defined $$prev_ref;
-  $$data_ref =~ s/Eidolos/Stumbly/ig;
+    my ($data_ref, $time_ref, $prev_ref) = @_;
+    ++$callback_called;
+    $$time_ref = $$prev_ref + ($$time_ref - $$prev_ref) / 2
+        if defined $$prev_ref;
+    $$data_ref =~ s/Eidolos/Stumbly/ig;
 }
 
-my $t = new Term::TtyRec::Plus(infile => $ttyrec,
-                               frame_filter => \&filter);
+my $t = Term::TtyRec::Plus->new(
+    infile => $ttyrec,
+    frame_filter => \&filter,
+);
 
 is($t->frame_filter(), \&filter, "frame_filter set properly");
 
@@ -40,13 +42,13 @@ my $relative_time = 0;
 my $eidolos = 0;
 
 while (my $frame_ref = $t->next_frame()) {
-  $diffs_full += $frame_ref->{diffed_timestamp} - $frame_ref->{prev_timestamp}
-    if $frame_ref->{frame} > 1;
+    $diffs_full += $frame_ref->{diffed_timestamp} - $frame_ref->{prev_timestamp}
+        if $frame_ref->{frame} > 1;
 
-  $diffs += $frame_ref->{diff};
-  $relative_time = $frame_ref->{relative_time};
+    $diffs += $frame_ref->{diff};
+    $relative_time = $frame_ref->{relative_time};
 
-  $eidolos += $frame_ref->{data} =~ /Eidolos/i;
+    $eidolos += $frame_ref->{data} =~ /Eidolos/i;
 }
 
 is($callback_called, $frames, "Callback called once per frame.");
