@@ -8,6 +8,8 @@ githubmeta;
 
 requires 'IO::Uncompress::Bunzip2';
 
+install_script 'bin/ttyplay';
+
 auto_install;
 WriteAll;
 
