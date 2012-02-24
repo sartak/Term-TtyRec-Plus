@@ -4,12 +4,42 @@ use warnings;
 
 use Term::TtyRec::Plus;
 
+use Getopt::Long;
+
+my ($speed, $clamp, $peek) = (1, undef, 0);
+GetOptions(
+    'speed=f' => \$speed,
+    'clamp=f' => \$clamp,
+    'peek'    => \$peek,
+    'nowait'  => sub { $clamp = 0 },
+) || exit(1);
+
 $|++;
 
 foreach my $file (@ARGV) {
-    my $ttyrec = Term::TtyRec::Plus->new(infile => $file, time_threshold => 10);
-    while (my $frame_ref = $ttyrec->next_frame()) {
-        select undef, undef, undef, $frame_ref->{diff};
-        print $frame_ref->{data};
+    my $ttyrec = Term::TtyRec::Plus->new(
+        infile => $file,
+        (defined($clamp)
+            ? (time_threshold => $clamp)
+            : ()),
+    );
+
+    if ($peek) {
+        my $fh = $ttyrec->filehandle;
+        seek $fh, 0, 2;
+        while (1) {
+            seek $fh, 0, 1;
+            my $frame_ref = $ttyrec->next_frame;
+            print $frame_ref->{data}
+                if $frame_ref;
+
+            select undef, undef, undef, 0.1;
+        }
+    }
+    else {
+        while (my $frame_ref = $ttyrec->next_frame) {
+            select undef, undef, undef, ($frame_ref->{diff} / $speed);
+            print $frame_ref->{data};
+        }
     }
 }
