@@ -1,0 +1,15 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+
+use Term::TtyRec::Plus;
+
+$|++;
+
+foreach my $file (@ARGV) {
+    my $ttyrec = Term::TtyRec::Plus->new(infile => $file, time_threshold => 10);
+    while (my $frame_ref = $ttyrec->next_frame()) {
+        select undef, undef, undef, $frame_ref->{diff};
+        print $frame_ref->{data};
+    }
+}
