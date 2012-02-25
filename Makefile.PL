@@ -9,6 +9,7 @@ githubmeta;
 requires 'IO::Uncompress::Bunzip2';
 
 install_script 'bin/ttyplay';
+install_script 'bin/ttytime';
 
 auto_install;
 WriteAll;
