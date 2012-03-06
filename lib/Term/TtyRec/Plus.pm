@@ -415,6 +415,10 @@ Returns the total time difference between timestamps and filtered timestamps. C<
 
 Shawn M Moore, C<sartak@gmail.com>
 
+=head1 CONTRIBUTORS
+
+Jesse Luehrs, C<doy@tozt.net>
+
 =head1 CAVEATS
 
 =over 4
@@ -439,7 +443,7 @@ bzip2 support is transparent, mostly. Unfortunately L<IO::Uncompress::Bunzip2|IO
 
 =head1 COPYRIGHT & LICENSE
 
-Copyright 2006-2009 Shawn M Moore, all rights reserved.
+Copyright 2006-2012 Shawn M Moore, all rights reserved.
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.
