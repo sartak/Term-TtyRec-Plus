@@ -4,7 +4,7 @@ use strict;
 use Carp qw/croak/;
 use IO::Uncompress::Bunzip2 qw($Bunzip2Error);
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 sub new {
     my $class = shift;

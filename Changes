@@ -1,5 +1,8 @@
 Revision history for Term-TtyRec-Plus
 
+0.09    2012-03-06
+        Add ttytime script (Jesse Luehrs)
+
 0.08    2012-02-24
         Add ttyplay script (Jesse Luehrs)
 
